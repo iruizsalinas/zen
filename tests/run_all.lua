@@ -1,0 +1,12 @@
+require("tests.test_string")
+require("tests.test_number")
+require("tests.test_types")
+require("tests.test_object")
+require("tests.test_collections")
+require("tests.test_combinators")
+require("tests.test_base")
+require("tests.test_edge_cases")
+require("tests.test_security")
+
+local h = require("tests.helpers")
+os.exit(h.report() and 0 or 1)

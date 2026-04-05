@@ -1,0 +1,126 @@
+local h = require("tests.helpers")
+local z = require("zen")
+local describe, it = h.describe, h.it
+local assert_eq, assert_true, assert_false = h.assert_eq, h.assert_true, h.assert_false
+local assert_throws = h.assert_throws
+
+describe("z.boolean()", function()
+  it("accepts true and false", function()
+    assert_eq(z.boolean():parse(true), true)
+    assert_eq(z.boolean():parse(false), false)
+  end)
+
+  it("rejects everything else", function()
+    assert_false((z.boolean():safe_parse(1)))
+    assert_false((z.boolean():safe_parse(0)))
+    assert_false((z.boolean():safe_parse("true")))
+    assert_false((z.boolean():safe_parse(nil)))
+    assert_false((z.boolean():safe_parse({})))
+  end)
+end)
+
+describe("z.any()", function()
+  it("accepts strings, numbers, booleans, tables", function()
+    assert_eq(z.any():parse("hello"), "hello")
+    assert_eq(z.any():parse(42), 42)
+    assert_eq(z.any():parse(true), true)
+    local ok, result = z.any():safe_parse({a = 1})
+    assert_true(ok)
+    assert_eq(result.a, 1)
+  end)
+
+  it("rejects nil by default", function()
+    assert_false((z.any():safe_parse(nil)))
+  end)
+
+  it(":optional() accepts nil", function()
+    local ok, result = z.any():optional():safe_parse(nil)
+    assert_true(ok)
+    assert_eq(result, nil)
+  end)
+
+  it("returns a deep copy of tables", function()
+    local input = {a = {b = 1}}
+    local result = z.any():parse(input)
+    result.a.b = 999
+    assert_eq(input.a.b, 1)
+  end)
+end)
+
+describe("z.nil_()", function()
+  it("accepts nil", function()
+    local ok, result = z.nil_():safe_parse(nil)
+    assert_true(ok)
+    assert_eq(result, nil)
+  end)
+
+  it("rejects non-nil values", function()
+    assert_false((z.nil_():safe_parse("hello")))
+    assert_false((z.nil_():safe_parse(0)))
+    assert_false((z.nil_():safe_parse(false)))
+    assert_false((z.nil_():safe_parse({})))
+  end)
+end)
+
+describe("z.literal()", function()
+  it("matches exact string values", function()
+    assert_eq(z.literal("hello"):parse("hello"), "hello")
+    assert_false((z.literal("hello"):safe_parse("world")))
+  end)
+
+  it("matches exact number values", function()
+    assert_eq(z.literal(42):parse(42), 42)
+    assert_false((z.literal(42):safe_parse(43)))
+  end)
+
+  it("matches exact boolean values", function()
+    assert_eq(z.literal(true):parse(true), true)
+    assert_false((z.literal(true):safe_parse(false)))
+  end)
+
+  it("reports correct error code", function()
+    local ok, errs = z.literal("x"):safe_parse("y")
+    assert_false(ok)
+    assert_eq(errs[1].code, "invalid_literal")
+  end)
+
+  it("rejects nil input", function()
+    assert_false((z.literal("x"):safe_parse(nil)))
+  end)
+
+  it("rejects nil as literal value", function()
+    assert_throws(function() z.literal(nil) end, "non-nil")
+  end)
+end)
+
+describe("z.enum()", function()
+  it("accepts valid enum values", function()
+    local role = z.enum({"admin", "user", "guest"})
+    assert_eq(role:parse("admin"), "admin")
+    assert_eq(role:parse("user"), "user")
+    assert_eq(role:parse("guest"), "guest")
+  end)
+
+  it("rejects invalid enum values", function()
+    local role = z.enum({"admin", "user", "guest"})
+    local ok, errs = role:safe_parse("superadmin")
+    assert_false(ok)
+    assert_eq(errs[1].code, "invalid_enum")
+    assert_true(errs[1].message:find("admin"))
+  end)
+
+  it("works with number values", function()
+    local status = z.enum({1, 2, 3})
+    assert_eq(status:parse(1), 1)
+    assert_false((status:safe_parse(4)))
+  end)
+
+  it("rejects nil", function()
+    assert_false((z.enum({"a", "b"}):safe_parse(nil)))
+  end)
+
+  it("validates API inputs", function()
+    assert_throws(function() z.enum("bad") end, "expects a table")
+    assert_throws(function() z.enum({}) end, "at least one")
+  end)
+end)
