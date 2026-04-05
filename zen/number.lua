@@ -71,8 +71,12 @@ end
 
 function NumberSchema:multiple_of(n, msg)
   if type(n) ~= "number" then error("multiple_of() expects a number, got " .. type(n), 2) end
+  if n == 0 then error("multiple_of() expects a non-zero number", 2) end
   return self:_add_check(function(val)
-    if val % n ~= 0 then return false, msg or ("must be a multiple of " .. n), codes.custom end
+    local remainder = val % n
+    if remainder ~= 0 and math.abs(remainder - n) > 1e-10 then
+      return false, msg or ("must be a multiple of " .. n), codes.custom
+    end
     return true
   end)
 end
