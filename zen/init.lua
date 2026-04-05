@@ -65,19 +65,26 @@ end
 
 function zen.object(shape)
   if type(shape) ~= "table" then error("object() expects a table", 2) end
+  for k, s in pairs(shape) do
+    if not util.is_schema(s) then
+      error("object() field '" .. tostring(k) .. "' must be a schema", 2)
+    end
+  end
   return ObjectSchema._new(shape)
 end
 
 function zen.array(item_schema)
-  if item_schema == nil then error("array() expects a schema", 2) end
+  if not util.is_schema(item_schema) then error("array() expects a schema", 2) end
   return ArraySchema._new(item_schema)
 end
 
 function zen.record(key_or_value, value_schema)
   if value_schema then
+    if not util.is_schema(key_or_value) then error("record() key must be a schema", 2) end
+    if not util.is_schema(value_schema) then error("record() value must be a schema", 2) end
     return RecordSchema._new(key_or_value, value_schema)
   else
-    if key_or_value == nil then error("record() expects a schema", 2) end
+    if not util.is_schema(key_or_value) then error("record() expects a schema", 2) end
     return RecordSchema._new(nil, key_or_value)
   end
 end
@@ -85,17 +92,25 @@ end
 function zen.tuple(...)
   local schemas = {...}
   if #schemas == 0 then error("tuple() requires at least one schema", 2) end
+  for i = 1, #schemas do
+    if not util.is_schema(schemas[i]) then error("tuple() argument " .. i .. " must be a schema", 2) end
+  end
   return TupleSchema._new(schemas)
 end
 
 function zen.union(...)
   local schemas = {...}
   if #schemas < 2 then error("union() requires at least 2 schemas", 2) end
+  for i = 1, #schemas do
+    if not util.is_schema(schemas[i]) then error("union() argument " .. i .. " must be a schema", 2) end
+  end
   return UnionSchema._new(schemas)
 end
 
 function zen.intersection(left, right)
-  if left == nil or right == nil then error("intersection() requires 2 schemas", 2) end
+  if not util.is_schema(left) or not util.is_schema(right) then
+    error("intersection() requires 2 schemas", 2)
+  end
   return IntersectionSchema._new(left, right)
 end
 

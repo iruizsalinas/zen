@@ -2,6 +2,10 @@ local util = {}
 
 util.EMPTY_PATH = {}
 
+function util.is_schema(v)
+  return type(v) == "table" and type(v._validate) == "function"
+end
+
 util.codes = {
   invalid_type      = "invalid_type",
   too_small         = "too_small",

@@ -83,6 +83,9 @@ function ObjectSchema:strip()
 end
 
 function ObjectSchema:catchall(schema)
+  if not require("zen.util").is_schema(schema) then
+    error("catchall() expects a schema", 2)
+  end
   local new = self:_clone()
   new._catchall_schema = schema
   return new
@@ -169,7 +172,9 @@ function ObjectSchema:extend(extra_shape)
 end
 
 function ObjectSchema:get_shape()
-  return self._shape
+  local copy = {}
+  for k, s in pairs(self._shape) do copy[k] = s end
+  return copy
 end
 
 return ObjectSchema
