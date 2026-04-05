@@ -45,6 +45,18 @@ local function check_email(s)
   return true
 end
 
+local function check_octet(part)
+  if #part > 1 and part:byte(1) == 48 then return false end
+  local n = tonumber(part)
+  return n and n <= 255
+end
+
+local function check_ipv4(s)
+  local a, b, c, d = s:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+  if not a then return false end
+  return check_octet(a) and check_octet(b) and check_octet(c) and check_octet(d)
+end
+
 local function check_url(s)
   local lower = s:sub(1, 8):lower()
   if lower:sub(1, 7) ~= "http://" and lower:sub(1, 8) ~= "https://" then return false end
@@ -61,11 +73,15 @@ local function check_url(s)
   if hostname:find("%s") then return false end
 
   if hostname:lower() == "localhost" then return true end
-  if hostname:match("^%d+%.%d+%.%d+%.%d+$") then return true end
+  if hostname:match("^%d+%.%d+%.%d+%.%d+$") then
+    return check_ipv4(hostname)
+  end
   if not hostname:find(".", 1, true) then return false end
 
   for label in hostname:gmatch("[^%.]+") do
     if #label == 0 or #label > 63 then return false end
+    if label:byte(1) == 45 or label:byte(-1) == 45 then return false end
+    if label:find("[^%w%-]") then return false end
   end
 
   return true
@@ -82,18 +98,6 @@ local function check_uuid(s)
     end
   end
   return true
-end
-
-local function check_octet(part)
-  if #part > 1 and part:byte(1) == 48 then return false end
-  local n = tonumber(part)
-  return n and n <= 255
-end
-
-local function check_ipv4(s)
-  local a, b, c, d = s:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
-  if not a then return false end
-  return check_octet(a) and check_octet(b) and check_octet(c) and check_octet(d)
 end
 
 local function check_ipv6(s)
